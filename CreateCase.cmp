@@ -1,0 +1,230 @@
+<aura:component implements="forceCommunity:availableForAllPageTypes" access="global" controller="CustomCreateCaseController">
+    <aura:attribute name="name" type="String" default="" />
+    <aura:attribute name="twitchId" type="String" default="" />
+    <aura:attribute name="twitchUserName" type="String" default="" />
+    <aura:attribute name="email" type="String" default="" />
+    <aura:attribute name="webCaseWrapper" type="Object" default="{}" />
+    <aura:attribute name="categories" type="Object[]" />
+    <aura:attribute name="subCategories" type="Object[]" />
+    <aura:attribute name="detailCategories" type="Object[]" />
+    <aura:attribute name="selectedCategory" type="String" />
+    <aura:attribute name="selectedSubCategory" type="String" />
+    <aura:attribute name="selectedDetailCategory" type="String" />
+    <aura:attribute name="amazonLoginAuthorized" type="Boolean" default="false"/>
+    <aura:attribute name="twitchLoginAuthorized" type="Boolean" default="false"/>
+    <aura:attribute name="loginAuthorized" type="Boolean" default="false"/>
+    <aura:attribute name="showSubjectAndMessage" type="Boolean" default="false"/>
+    <aura:attribute name="runningUserId" type="String" />
+    <aura:attribute name="contact" type="Object" />
+    <aura:attribute name="categoryArticle" type="Object" />
+    <aura:attribute name="showCategoryArticle" type="Boolean" />
+    <aura:attribute name="subCategoryArticle" type="String" />
+    <aura:attribute name="showSubCategoryArticle" type="Boolean" />
+    <aura:attribute name="detailCategoryArticle" type="String" />
+    <aura:attribute name="showDetailCategoryArticle" type="Boolean" />
+    <aura:attribute name="blockCaseCreate" type="Boolean" />
+    <aura:attribute name="selectedCategoryWrapper" type="Object" />
+    <aura:attribute name="selectedSubCategoryWrapper" type="Object" />
+    <aura:attribute name="selectedDetailCategoryWrapper" type="Object" />
+    <aura:attribute name="twitchUserSuspended" type="string" /><aura:attribute name="showForm" type="Boolean" default="true"/>
+    <aura:attribute name="caseIdURL" type="String" />
+    <aura:attribute name="origin" type="String" default="Web" />
+    <aura:attribute name="IPAddress" type="String" />
+    <aura:attribute name="browserInfo" type="String" />
+    <aura:attribute name="recordId" type="String" />
+    <aura:attribute name="successTitle" type="String" default="{!$Label.c.WebForm_Case_Create_Title}" />
+    <aura:attribute name="successMessage" type="String" default="{!$Label.c.WebForm_Case_Create_Message}" />    
+    <aura:attribute name="fileName" type="String" default="No File Selected.." />
+    <aura:attribute name="fileList" type="Attachment[]"/>
+    
+    
+    <aura:handler name="init" action="{!c.doInit}" value="{!this}"/>
+    <aura:handler name="change" value="{!v.amazonLoginAuthorized}" action="{!c.toggleOptions}"/>
+    <aura:handler name="change" value="{!v.twitchLoginAuthorized}" action="{!c.toggleOptions}"/>
+    <aura:handler name="change" value="{!v.loginAuthorized}" action="{!c.toggleOptions}"/>
+    
+    <aura:registerEvent name="appEvent" type="selfService:caseCreateFieldChange"/>
+    
+    <aura:if isTrue="{!v.showForm}">
+        <lightning:recordEditForm aura:id="recordEditForm"
+                                  objectApiName="Case"
+                                  onsubmit="{!c.onRecordSubmit}"
+                                  onsuccess="{!c.onRecordSuccess}">
+            
+            <lightning:messages />
+            
+            
+            <h3 class="slds-page-header" style="font-size:2em"> Email Us</h3>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:input aura:id="name" name="Name" label="Your name" value="{!v.name}" required="{!v.twitchUserName == ''}" onchange="{!c.toggleReRender}"/>
+            </div>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:input aura:id="twitchUserName" name="Twitch User Name" label="Your Twitch User Name" value="{!v.twitchUserName}" required="{!v.name == ''}" onchange="{!c.toggleReRender}"/>
+            </div>
+            
+            <aura:if isTrue="{!!v.runningUserId}">
+                <lightning:button class="slds-m-top_small" variant="brand" label="Login" onclick="{!c.loginToPassport}"/>
+            </aura:if>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:input type="email" value="{!v.email}" name="contactEmail" label="Your contact email address, for replies" require="true"/>
+            </div>
+            
+            <div class="row" style="margin-top:3%">
+                
+            </div>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:select class="slds-listbox__item" name="catSelect" label="Category" required="false" value="{!v.selectedCategory}" onchange="{!c.categoryChange}">
+                    <option value="" >-- None --</option>
+                    <aura:iteration items="{!v.categories}" var="cat">
+                        <aura:if isTrue="{!!cat.hide}">
+                            <option value="{!cat.Category__c}" 
+                                    text="{!cat.Category__c + if(cat.Amazon_Login_Required__c, ' ( Amazon Login Required ) ', if(cat.Twitch_Login_Required__c &amp;&amp; !v.loginAuthorized, ' ( Twitch Login Required ) ', ''))}" 
+                                    selected="{!v.selectedCategory == cat.Category__c}"/>     
+                            <div class="my-icon"/>
+                        </aura:if>
+                    </aura:iteration>
+                </lightning:select>
+            </div>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:select name="subCatSelect" label="Sub Category" required="false" value="{!v.selectedSubCategory}" onchange="{!c.subCategoryChange}">
+                    <option value="">-- None --</option>
+                    <aura:iteration items="{!v.subCategories}" var="subCat">
+                        <aura:if isTrue="{!!subCat.hide}">
+                            <option value="{!subCat.Sub_Category__c}" 
+                                    text="{!subCat.Sub_Category__c + if(subCat.Amazon_Login_Required__c, ' ( Amazon Login Required ) ', if(subCat.Twitch_Login_Required__c &amp;&amp; !v.loginAuthorized, ' ( Twitch Login Required ) ', ''))}" 
+                                    selected="{!v.selectedSubCategory == subCat.Sub_Category__c}"/>
+                        </aura:if>
+                    </aura:iteration>
+                </lightning:select>
+            </div>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:select name="detCatSelect" label="Detail Category" required="false" value="{!v.selectedDetailCategory}" onchange="{!c.detailCategoryChange}">
+                    <option value="">-- None --</option>
+                    <aura:iteration items="{!v.detailCategories}" var="detCat">
+                        <aura:if isTrue="{!!detCat.hide}">
+                            <option value="{!detCat.Detail_Category__c}" 
+                                    text="{!detCat.Detail_Category__c + if(detCat.Amazon_Login_Required__c, ' ( Amazon Login Required ) ', if(detCat.Twitch_Login_Required__c &amp;&amp; !v.loginAuthorized, ' ( Twitch Login Required ) ', ''))}" 
+                                    selected="{!v.selectedDetailCategory == detCat.Detail_Category__c}"/>
+                        </aura:if>
+                    </aura:iteration>
+                </lightning:select>
+            </div>
+            
+            <aura:if isTrue="{!v.showSubjectAndMessage}">
+                <div class="row" style="margin-top:3%">
+                    <lightning:inputField onchange="{!c.itemsChange}" fieldName="Subject"/>
+                </div>
+                
+                <div class="row" style="margin-top:3%">
+                    <lightning:inputField fieldName="Description" onchange="{!c.itemsChange}"/>
+                </div>
+            </aura:if>
+            
+            <div class="row" style="margin-top:3%">
+                <lightning:inputField fieldName="OperatingSystem__c"/>
+            </div>
+            
+            <aura:if isTrue="{!v.selectedDetailCategory == 'suspension' || v.selectedDetailCategory == 'account site banned'}">
+                <div class="row" style="margin-top: 3%;">
+                    <label class="slds-form-element__label" for="Read_ToS_Agreement__c">Have you read through our <a>Terms of Service</a> and agree to not break them? *</label>
+                    <lightning:inputField class="slds-p-top_xx-small slds-float_left" fieldName="Read_ToS_Agreement__c" variant="label-hidden" />
+                </div>
+                <div class="row" style="margin-top: 3%;">
+                    <label class="slds-form-element__label" for="Read_ToS_Agreement__c">Have you read through our <a>Community Guidelines</a> and understand and agree to them? *</label>
+                    <lightning:inputField class="slds-p-top_xx-small slds-float_left" fieldName="Read_Community_Guidelines__c" variant="label-hidden" />
+                </div>
+                
+                <div class="row" style="margin-top:3%">
+                    <lightning:inputField fieldName="TwitchUsername__c" label="What is your username? *" />
+                </div>
+                
+                <div class="row" style="margin-top:3%">
+                    <label class="slds-form-element__label" for="IP_Address__c">What is your IP address from whatsmyip.org? *</label>
+                    <lightning:inputField fieldName="IP_Address__c" variant="label-hidden" value="{!v.IPAddress}"/>
+                </div>
+                
+                <div class="row" style="margin-top:3%">
+                    <label class="slds-form-element__label" for="Read_ToS_Agreement__c">Are you currently suspended on another account? *</label>
+                    <lightning:inputField fieldName="TwitchUserSuspended__c" variant="label-hidden" />
+                </div>
+                
+                <div class="row" style="margin-top:3%">
+                    <lightning:inputField fieldName="Suspension_Reason__c" />
+                </div>
+                
+            </aura:if>
+            
+            <div class="row" style="margin-top:3%">
+                <!--<lightning:input aura:id="fileId" onchange="{!c.handleFilesChange}" type="file" name="file" label="Upload Attachment" multiple="true"/>-->
+                <lightning:input aura:id="fileId" onchange="{!c.handleUploadFinished}" type="file" name="file" label="Upload Attachment" multiple="true"/>
+                <aura:iteration items="{!v.fileList}" var="file">
+                	<div class="slds-text-body_small slds-text-color_error">{!file.name} </div>
+                </aura:iteration>
+            </div> 
+           
+            <aura:if isTrue="{!v.showCategoryArticle}">
+                <div class="row" style="margin-top:3%">
+                    <lightning:card title="{!v.categoryArticle.Title}">
+                        <div class="slds-card__body slds-card__body_inner">
+                            <aura:unescapedHtml value="{!v.categoryArticle.Body__c}"/>
+                        </div>
+                    </lightning:card>
+                </div>
+            </aura:if>
+            <aura:if isTrue="{!v.showSubCategoryArticle}">
+                <div class="row" style="margin-top:3%">
+                    <lightning:card title="{!v.subCategoryArticle.Title}">
+                        <div class="slds-card__body slds-card__body_inner">
+                            <aura:unescapedHtml value="{!v.subCategoryArticle.Body__c}"/>
+                        </div>
+                    </lightning:card>
+                </div>
+            </aura:if>
+            <aura:if isTrue="{!v.showDetailCategoryArticle}">
+                <div class="row" style="margin-top:3%">
+                    <lightning:card title="{!v.detailCategoryArticle.Title}">
+                        <div class="slds-card__body slds-card__body_inner">
+                            <aura:unescapedHtml value="{!v.detailCategoryArticle.Body__c}"/>
+                        </div>
+                    </lightning:card>
+                </div>
+            </aura:if>
+            
+            <div class="{!if(v.blockCaseCreate, 'slds-hide', '')}">
+                <lightning:button aura:id="myButton" class="slds-m-top_small" variant="brand" type="submit" label="Submit" disabled="true"/>
+            </div>
+            
+            <div class="row" style="margin-top:3%; height: 500px;">
+                <iframe src="https://twitcheng--dawnbackup--c.cs60.visual.force.com/apex/TWIT_Captcha" height="100%" width="100%" style="border:0px"/>
+            </div>
+            
+            <!--
+       Hidden fields so that we can grab all inputs from the recordEditForm without additional effort
+     -->
+            <div class="slds-hide">
+                <lightning:inputField fieldName="TwitchUsername__c" value="{!v.twitchUserName}" />
+                <lightning:inputField fieldName="SuppliedName__c" value="{!v.name}"/>
+                <lightning:inputField fieldName="SuppliedEmail" value="{!v.email}"/>
+                <lightning:inputField fieldName="Category__c" value="{!v.selectedCategory}"/>
+                <lightning:inputField fieldName="SubCategory__c" value="{!v.selectedSubCategory}"/>
+                <lightning:inputField fieldName="Detail_Category__c" value="{!v.selectedDetailCategory}"/>
+                <lightning:inputField fieldName="TwitchUserSuspended__c" value="{!v.twitchUserSuspended}" />
+                <lightning:inputField fieldName="Origin" value="{!v.origin}" />
+                <lightning:inputField fieldName="Browser_Info__c" value="{!v.browserInfo}"/>
+            </div>
+            
+        </lightning:recordEditForm>
+        
+        <aura:set attribute="else">
+            <h3 class="slds-page-header" style="font-size:2em"> Email Us</h3>
+            <h4 class="slds-page-header">Success! Your email has been sent. </h4>
+        </aura:set>
+    </aura:if>
+    
+</aura:component>
